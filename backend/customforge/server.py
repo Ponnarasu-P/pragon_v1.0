@@ -2739,6 +2739,35 @@ def api_open_in_browser():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/ai/chat", methods=["POST"])
+def api_ai_chat():
+    data = request.get_json(force=True, silent=True) or {}
+    messages = data.get("messages") or []
+    system_prompt = data.get("systemPrompt") or ""
+    model_name = data.get("model") or "gemini-1.5-flash"
+
+    try:
+        configure_genai()
+        import google.generativeai as genai
+        
+        contents = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            if role == "assistant":
+                role = "model"
+            content = msg.get("content", "")
+            contents.append({"role": role, "parts": [content]})
+            
+        model = genai.GenerativeModel(
+            model_name=model_name, 
+            system_instruction=system_prompt if system_prompt else None
+        )
+        response = model.generate_content(contents)
+        return jsonify({"ok": True, "text": response.text})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("  PRAGON — C.U.S.T.O.M FORGE bridge server")
